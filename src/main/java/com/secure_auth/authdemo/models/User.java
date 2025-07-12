@@ -1,4 +1,4 @@
-package com.secure_auth.authdemo.Models;
+package com.secure_auth.authdemo.models;
 
 
 import jakarta.persistence.*;

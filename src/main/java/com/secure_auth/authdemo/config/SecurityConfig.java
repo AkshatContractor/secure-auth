@@ -25,17 +25,15 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/user/register").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/user/register").permitAll() // Public registration
+                        .requestMatchers("/api/**").authenticated() //everything else need authentication
                 )
                 .httpBasic(Customizer.withDefaults());
         return http.build();
     }
 
-
     @Bean
     public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
-//        UserDetails user = User.withDe
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);

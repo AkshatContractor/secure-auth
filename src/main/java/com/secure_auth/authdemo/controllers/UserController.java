@@ -1,7 +1,9 @@
-package com.secure_auth.authdemo.Controllers;
+package com.secure_auth.authdemo.controllers;
 
-import com.secure_auth.authdemo.Models.User;
-import com.secure_auth.authdemo.Services.UserService;
+import com.secure_auth.authdemo.dto.request.UserRequestDto;
+import com.secure_auth.authdemo.dto.response.UserResponseDto;
+import com.secure_auth.authdemo.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +20,8 @@ public class UserController {
     private UserService service;
 
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody User user) {
-        try {
-            service.registerUser(user);
-            return ResponseEntity.status(HttpStatus.CREATED).body("User registered");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    public ResponseEntity<UserResponseDto> registerUser(@RequestBody @Valid UserRequestDto userRequestDto) {
+        UserResponseDto responseDto = service.registerUser(userRequestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 }
