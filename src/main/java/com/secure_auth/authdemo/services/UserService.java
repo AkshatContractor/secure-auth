@@ -41,9 +41,4 @@ public class UserService {
 
         return responseDto;
     }
-
-    public void userLogin(UserRequestDto userRequestDto) {
-
-
-    }
 }

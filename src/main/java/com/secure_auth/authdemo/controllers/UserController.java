@@ -1,8 +1,12 @@
 package com.secure_auth.authdemo.controllers;
 
 import com.secure_auth.authdemo.components.JwtConfig;
+import com.secure_auth.authdemo.dto.request.OtpRequestDto;
 import com.secure_auth.authdemo.dto.request.UserRequestDto;
+import com.secure_auth.authdemo.dto.response.LoginSuccessDto;
+import com.secure_auth.authdemo.dto.response.OtpResponseDto;
 import com.secure_auth.authdemo.dto.response.UserResponseDto;
+import com.secure_auth.authdemo.services.OtpCallerService;
 import com.secure_auth.authdemo.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +33,9 @@ public class UserController {
     @Autowired
     private JwtConfig jwtconfigure;
 
+    @Autowired
+    private OtpCallerService otpCallerService;
+
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> registerUser(@RequestBody @Valid UserRequestDto userRequestDto) {
         UserResponseDto responseDto = service.registerUser(userRequestDto);
@@ -36,14 +43,52 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public String userLogin(@RequestBody UserRequestDto userRequestDto) {
+    public ResponseEntity<?> userLogin(@RequestBody UserRequestDto userRequestDto) {
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(userRequestDto.getUsername(), userRequestDto.getPassword()));
-        if(authentication.isAuthenticated()) {
-            String str =  jwtconfigure.generateToken(userRequestDto.getUsername());
-            System.out.println(str);
-            return str;
+                .authenticate(new UsernamePasswordAuthenticationToken(userRequestDto.getEmail(), userRequestDto.getPassword()));
+        LoginSuccessDto loginSuccessDto = new LoginSuccessDto();
+        if (authentication.isAuthenticated()) {
+            String email = userRequestDto.getEmail();
+            if(email == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Somethingdsdsd went wrong");
+            }
+            otpCallerService.generateOtp(email).subscribe();
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body("Otp Sent to Registered  Email");
         }
-        return "Failure";
+        loginSuccessDto.setToken("Not found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(loginSuccessDto);
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<LoginSuccessDto> verifyOtp(@RequestBody OtpRequestDto otpRequestDto) {
+        String email = otpRequestDto.getEmail();
+        String otp = otpRequestDto.getOtp();
+
+        //call service
+        OtpResponseDto otpResponseDto = otpCallerService.verifyOtp(email, otp).block();
+        HttpStatus status;
+        if (otpResponseDto == null || otpResponseDto.getOtpResponseEnum() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginSuccessDto());
+        }
+        switch (otpResponseDto.getOtpResponseEnum()) {
+            case SUCCESS -> {
+                String token = jwtconfigure.generateToken(email);
+                LoginSuccessDto loginSuccess = new LoginSuccessDto();
+                loginSuccess.setToken(token);
+                return ResponseEntity.status(HttpStatus.OK).body(loginSuccess);
+            }
+            case NOT_FOUND -> {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginSuccessDto());
+            }
+            case INVALID -> {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LoginSuccessDto());
+            }
+            case EXPIRED -> {
+                return ResponseEntity.status(HttpStatus.GONE).body(new LoginSuccessDto());
+            }
+            default -> {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto());
+            }
+        }
     }
 }

@@ -33,7 +33,7 @@ public class JwtConfig {
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5)) // 10 minutes
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 10)) // 10 minutes
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -46,6 +46,7 @@ public class JwtConfig {
     public String extractUsername(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getKey())
+                .setAllowedClockSkewSeconds(30)
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
