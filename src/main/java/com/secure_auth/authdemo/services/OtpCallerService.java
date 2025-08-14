@@ -4,6 +4,7 @@ import com.secure_auth.authdemo.dto.request.OtpRequestDto;
 import com.secure_auth.authdemo.dto.response.OtpResponseDto;
 import com.secure_auth.authdemo.repositories.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -18,13 +19,14 @@ public class OtpCallerService {
 
     private final WebClient webClient;
 
-    public OtpCallerService(WebClient.Builder builder) {
-        this.webClient = builder.baseUrl("sflndsf").build();
+    public OtpCallerService(WebClient.Builder builder,
+                            @Value("${otp.service.url:http://localhost:8081}") String otpServiceUrl) {
+        this.webClient = builder.baseUrl(otpServiceUrl).build();
     }
 
     public Mono<Void> generateOtp(String email) {
         return webClient.post()
-                .uri("http://localhost:8081/api/otp/generate")
+                .uri("/api/otp/generate")  // Use relative path
                 .bodyValue(Map.of("email", email))
                 .retrieve()
                 .bodyToMono(Void.class);
@@ -32,10 +34,9 @@ public class OtpCallerService {
 
     public Mono<OtpResponseDto> verifyOtp(String email, String otp) {
         return webClient.post()
-                .uri("http://localhost:8081/api/otp/verify-otp")
+                .uri("/api/otp/verify-otp")  // Use relative path
                 .bodyValue(Map.of("email", email, "otp", otp))
                 .retrieve()
                 .bodyToMono(OtpResponseDto.class);
     }
-
 }

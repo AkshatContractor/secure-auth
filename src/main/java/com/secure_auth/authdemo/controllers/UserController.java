@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/user")
@@ -50,7 +51,7 @@ public class UserController {
         if (authentication.isAuthenticated()) {
             String email = userRequestDto.getEmail();
             if(email == null) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Somethingdsdsd went wrong");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
             }
             otpCallerService.generateOtp(email).subscribe();
             return ResponseEntity.status(HttpStatus.ACCEPTED).body("Otp Sent to Registered  Email");
@@ -60,35 +61,32 @@ public class UserController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<LoginSuccessDto> verifyOtp(@RequestBody OtpRequestDto otpRequestDto) {
+    public Mono<ResponseEntity<LoginSuccessDto>> verifyOtp(@RequestBody OtpRequestDto otpRequestDto) {
         String email = otpRequestDto.getEmail();
         String otp = otpRequestDto.getOtp();
 
-        //call service
-        OtpResponseDto otpResponseDto = otpCallerService.verifyOtp(email, otp).block();
-        HttpStatus status;
-        if (otpResponseDto == null || otpResponseDto.getOtpResponseEnum() == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginSuccessDto());
-        }
-        switch (otpResponseDto.getOtpResponseEnum()) {
-            case SUCCESS -> {
-                String token = jwtconfigure.generateToken(email);
-                LoginSuccessDto loginSuccess = new LoginSuccessDto();
-                loginSuccess.setToken(token);
-                return ResponseEntity.status(HttpStatus.OK).body(loginSuccess);
-            }
-            case NOT_FOUND -> {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginSuccessDto());
-            }
-            case INVALID -> {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LoginSuccessDto());
-            }
-            case EXPIRED -> {
-                return ResponseEntity.status(HttpStatus.GONE).body(new LoginSuccessDto());
-            }
-            default -> {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto());
-            }
-        }
+        return otpCallerService.verifyOtp(email, otp)
+                .map(otpResponseDto -> {
+                    switch (otpResponseDto.getOtpResponseEnum()) {
+                        case SUCCESS:
+                            String token = jwtconfigure.generateToken(email);
+                            LoginSuccessDto loginSuccess = new LoginSuccessDto();
+                            loginSuccess.setToken(token);
+                            return ResponseEntity.status(HttpStatus.OK).body(loginSuccess);
+                        case NOT_FOUND:
+                            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginSuccessDto());
+                        case INVALID:
+                            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LoginSuccessDto());
+                        case EXPIRED:
+                            return ResponseEntity.status(HttpStatus.GONE).body(new LoginSuccessDto());
+                        default:
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto());
+                    }
+                })
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto()))
+                .onErrorResume(e -> {
+                    System.err.println("Error calling OTP service: " + e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto()));
+                });
     }
 }
