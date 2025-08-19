@@ -2,9 +2,10 @@ package com.secure_auth.authdemo.controllers;
 
 import com.secure_auth.authdemo.components.JwtConfig;
 import com.secure_auth.authdemo.dto.request.OtpRequestDto;
+import com.secure_auth.authdemo.dto.request.ResetPassRequestDto;
 import com.secure_auth.authdemo.dto.request.UserRequestDto;
 import com.secure_auth.authdemo.dto.response.LoginSuccessDto;
-import com.secure_auth.authdemo.dto.response.OtpResponseDto;
+import com.secure_auth.authdemo.dto.response.PasswordResetInitiationResponse;
 import com.secure_auth.authdemo.dto.response.UserResponseDto;
 import com.secure_auth.authdemo.services.OtpCallerService;
 import com.secure_auth.authdemo.services.UserService;
@@ -26,7 +27,7 @@ import reactor.core.publisher.Mono;
 public class UserController {
 
     @Autowired
-    private UserService service;
+    private UserService userService;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -39,7 +40,7 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> registerUser(@RequestBody @Valid UserRequestDto userRequestDto) {
-        UserResponseDto responseDto = service.registerUser(userRequestDto);
+        UserResponseDto responseDto = userService.registerUser(userRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
@@ -88,5 +89,18 @@ public class UserController {
                     System.err.println("Error calling OTP service: " + e.getMessage());
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginSuccessDto()));
                 });
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPassRequestDto resetPassRequestDto) {
+        try{
+            PasswordResetInitiationResponse response = userService.resetPassword(resetPassRequestDto);
+            if(!response.isSuccess()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMessage());
+            }
+            return ResponseEntity.status(HttpStatus.OK).body(response.getMessage());
+        } catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred. Please try again later.");
+        }
     }
 }

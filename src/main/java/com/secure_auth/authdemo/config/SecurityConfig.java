@@ -33,7 +33,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/user/register",
                                 "/api/user/login",
-                                "/api/user/verify-otp"
+                                "/api/user/verify-otp",
+                                "/api/user/reset-password"
                         )
                         .permitAll()
                         .requestMatchers("/api/**").authenticated()
