@@ -1,12 +1,15 @@
 package com.secure_auth.authdemo.controllers;
 
 import com.secure_auth.authdemo.components.JwtConfig;
+import com.secure_auth.authdemo.dto.request.ConfirmResetPasswordRequestDto;
 import com.secure_auth.authdemo.dto.request.OtpRequestDto;
 import com.secure_auth.authdemo.dto.request.ResetPassRequestDto;
 import com.secure_auth.authdemo.dto.request.UserRequestDto;
 import com.secure_auth.authdemo.dto.response.LoginSuccessDto;
+import com.secure_auth.authdemo.dto.response.PasswordChangedDto;
 import com.secure_auth.authdemo.dto.response.PasswordResetInitiationResponse;
 import com.secure_auth.authdemo.dto.response.UserResponseDto;
+import com.secure_auth.authdemo.enums.NewPassEnum;
 import com.secure_auth.authdemo.services.OtpCallerService;
 import com.secure_auth.authdemo.services.UserService;
 import jakarta.validation.Valid;
@@ -101,6 +104,26 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.OK).body(response.getMessage());
         } catch (Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred. Please try again later.");
+        }
+    }
+
+    @PostMapping("/confirm-reset-password")
+    public ResponseEntity<PasswordChangedDto> confirmResetPassword(@RequestBody ConfirmResetPasswordRequestDto confirmResetPasswordRequestDto) {
+        NewPassEnum newPassEnumResponse  = userService.confirmResetPasswordReq(confirmResetPasswordRequestDto);
+        PasswordChangedDto passwordChangedDto = new PasswordChangedDto();
+        switch (newPassEnumResponse) {
+            case SUCCESS:
+                passwordChangedDto.setPass_change_response("Password updated successfully");
+                return ResponseEntity.status(HttpStatus.OK).body(passwordChangedDto);
+            case INVALID:
+                passwordChangedDto.setPass_change_response("Invalid link please request a new one");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(passwordChangedDto);
+            case EXPIRED:
+                passwordChangedDto.setPass_change_response("The password reset link has expired. Please request a new one");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(passwordChangedDto);
+            default:
+                passwordChangedDto.setPass_change_response("An unexpected error occurred");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(passwordChangedDto);
         }
     }
 }
