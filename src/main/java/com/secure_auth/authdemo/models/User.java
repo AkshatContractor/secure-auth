@@ -1,6 +1,7 @@
 package com.secure_auth.authdemo.models;
 
 
+import com.secure_auth.authdemo.enums.UserRoleAssignEnum;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -24,7 +25,8 @@ public class User {
     private String password;
 
     @Column(nullable = true)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private UserRoleAssignEnum role;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = true, updatable = false)
@@ -66,11 +68,11 @@ public class User {
         this.password = password;
     }
 
-    public String getRole() {
+    public UserRoleAssignEnum getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(UserRoleAssignEnum role) {
         this.role = role;
     }
 

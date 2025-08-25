@@ -7,6 +7,7 @@ import com.secure_auth.authdemo.dto.request.UserRequestDto;
 import com.secure_auth.authdemo.dto.response.PasswordResetInitiationResponse;
 import com.secure_auth.authdemo.dto.response.UserResponseDto;
 import com.secure_auth.authdemo.enums.NewPassEnum;
+import com.secure_auth.authdemo.enums.UserRoleAssignEnum;
 import com.secure_auth.authdemo.models.PasswordResetToken;
 import com.secure_auth.authdemo.models.User;
 import com.secure_auth.authdemo.repositories.PasswordResetRepo;
@@ -56,6 +57,7 @@ public class UserService {
         user.setUsername(requestDto.getUsername());
         user.setEmail(requestDto.getEmail());
         user.setPassword(passwordEncoder.encode(requestDto.getPassword()));
+        user.setRole(UserRoleAssignEnum.USER);
 
         //map responseDto back to the responseDto DTO
         User savedUser = repo.save(user);

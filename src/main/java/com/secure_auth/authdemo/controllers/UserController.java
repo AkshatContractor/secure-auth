@@ -10,19 +10,19 @@ import com.secure_auth.authdemo.dto.response.PasswordChangedDto;
 import com.secure_auth.authdemo.dto.response.PasswordResetInitiationResponse;
 import com.secure_auth.authdemo.dto.response.UserResponseDto;
 import com.secure_auth.authdemo.enums.NewPassEnum;
+import com.secure_auth.authdemo.services.MyUserDetailsService;
 import com.secure_auth.authdemo.services.OtpCallerService;
 import com.secure_auth.authdemo.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -40,6 +40,9 @@ public class UserController {
 
     @Autowired
     private OtpCallerService otpCallerService;
+
+    @Autowired
+    private MyUserDetailsService myUserDetailsService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> registerUser(@RequestBody @Valid UserRequestDto userRequestDto) {
@@ -73,7 +76,9 @@ public class UserController {
                 .map(otpResponseDto -> {
                     switch (otpResponseDto.getOtpResponseEnum()) {
                         case SUCCESS:
-                            String token = jwtconfigure.generateToken(email);
+
+                            UserDetails userDetails = myUserDetailsService.loadUserByUsername(email);
+                            String token = jwtconfigure.generateToken(userDetails);
                             LoginSuccessDto loginSuccess = new LoginSuccessDto();
                             loginSuccess.setToken(token);
                             return ResponseEntity.status(HttpStatus.OK).body(loginSuccess);

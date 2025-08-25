@@ -1,10 +1,13 @@
 package com.secure_auth.authdemo.components;
 
+import com.secure_auth.authdemo.services.MyUserDetailsService;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.KeyGenerator;
@@ -13,6 +16,7 @@ import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtConfig {
@@ -29,9 +33,13 @@ public class JwtConfig {
         return Base64.getEncoder().encodeToString(secretKey.getEncoded());
     }
 
-    public String generateToken(String username) {
+    public String generateToken(UserDetails userDetails) {
+        String roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
         return Jwts.builder()
-                .setSubject(username)
+                .claim("roles", roles)
+                .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 10)) // 10 minutes
                 .signWith(getKey(), SignatureAlgorithm.HS256)
@@ -51,6 +59,16 @@ public class JwtConfig {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject(); // subject = username
+    }
+
+    public String extractRoles(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getKey())
+                .setAllowedClockSkewSeconds(30)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("roles", String.class);
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
