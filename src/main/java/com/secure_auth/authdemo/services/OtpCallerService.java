@@ -20,13 +20,13 @@ public class OtpCallerService {
     private final WebClient webClient;
 
     public OtpCallerService(WebClient.Builder builder,
-                            @Value("${otp.service.url:http://localhost:8081}") String otpServiceUrl) {
+                            @Value("${EMAIL_SERVICE_BASE_URL}") String otpServiceUrl) {
         this.webClient = builder.baseUrl(otpServiceUrl).build();
     }
 
     public Mono<Void> generateOtp(String email) {
         return webClient.post()
-                .uri("/api/otp/generate")  // Use relative path
+                .uri("/generate")  // Use relative path
                 .bodyValue(Map.of("email", email))
                 .retrieve()
                 .bodyToMono(Void.class);
@@ -34,7 +34,7 @@ public class OtpCallerService {
 
     public Mono<OtpResponseDto> verifyOtp(String email, String otp) {
         return webClient.post()
-                .uri("/api/otp/verify-otp")  // Use relative path
+                .uri("/verify-otp")  // Use relative path
                 .bodyValue(Map.of("email", email, "otp", otp))
                 .retrieve()
                 .bodyToMono(OtpResponseDto.class);
